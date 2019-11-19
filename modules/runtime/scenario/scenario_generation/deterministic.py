@@ -11,7 +11,7 @@ from modules.runtime.scenario.scenario_generation.model_json_conversion\
 from bark.world.agent import *
 from bark.models.behavior import *
 from bark.world import *
-from bark.world.goal_definition import GoalDefinition, GoalDefinitionPolygon
+from bark.world.goal_definition import GoalDefinition, GoalDefinitionPolygon, GoalDefinitionSequential
 from bark.world.map import *
 from bark.models.dynamic import *
 from bark.models.execution import *
@@ -35,6 +35,23 @@ class DeterministicScenarioGeneration(ScenarioGeneration):
     self._local_params = \
       self._params["Scenario"]["Generation"]["DeterministicScenarioGeneration"]
     
+    self.goal_frame_center = self._local_params["goal_frame"][
+      "center_pose", "Center pose of the goal frames",
+      [0, 0, 0]]
+    self.goal_frame_points = self._local_params["goal_frame"]["polygon_points",
+      "Points of the goal frame polygon",
+      [[0., 0.],
+       [4., 0.],
+       [4., 4],
+       [0., 4],
+       [0., 0.]]]
+    self.goal_frame_poses = self._local_params["goal_poses",
+      "A list with x,y, theta specyfing the sequence of the goal frames",
+      [[5112.626, 5200.8305, 0],
+      [5112.626, 5205.8305, 0],
+      [5112.626, 5210.8305, 0],
+      [5112.626, 5215.8305, 0]]]
+    
     self._map_file_name = self._local_params["MapFilename",
      "Path to the open drive map", 
      "modules/runtime/tests/data/Crossing8Course.xodr"]
@@ -50,6 +67,18 @@ class DeterministicScenarioGeneration(ScenarioGeneration):
       scenario = self.create_single_scenario()     
       scenario_list.append(scenario)
     return scenario_list
+  
+  def _build_sequential_goal_definition(self):
+    goal_list = []
+    for goal_pose in self.goal_frame_poses:
+        goal_polygon = Polygon2d(self.goal_frame_center,
+                               np.array(self.goal_frame_points))
+        goal_polygon = goal_polygon.transform(goal_pose)
+        goal_definition = GoalDefinitionSequential(goal_polygon)
+        goal_list.append(goal_definition)
+  
+    
+    return GoalDefinitionSequential(goal_list)
 
   def create_single_scenario(self):
     scenario = Scenario(map_file_name=self._map_file_name,
@@ -65,7 +94,7 @@ class DeterministicScenarioGeneration(ScenarioGeneration):
       goal_polygon = goal_polygon.translate(Point2d(agent_json["goal"]["center_pose"][0],
                                                     agent_json["goal"]["center_pose"][1]))
 
-      agent_json["goal_definition"] = GoalDefinitionPolygon(goal_polygon)
+      agent_json["goal_definition"] = self._build_sequential_goal_definition()
 
       agent_state = np.array(agent_json["state"])
       if len(np.shape(agent_state)) > 1:
