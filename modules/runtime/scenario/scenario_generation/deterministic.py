@@ -74,7 +74,7 @@ class DeterministicScenarioGeneration(ScenarioGeneration):
         goal_polygon = Polygon2d(self.goal_frame_center,
                                np.array(self.goal_frame_points))
         goal_polygon = goal_polygon.transform(goal_pose)
-        goal_definition = GoalDefinitionSequential(goal_polygon)
+        goal_definition = GoalDefinitionPolygon(goal_polygon)
         goal_list.append(goal_definition)
   
     
