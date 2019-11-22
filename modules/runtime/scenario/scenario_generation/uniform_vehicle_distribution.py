@@ -11,7 +11,8 @@ from modules.runtime.scenario.scenario_generation.model_json_conversion \
 from bark.world.agent import *
 from bark.models.behavior import *
 from bark.world import *
-from bark.world.goal_definition import GoalDefinition, GoalDefinitionPolygon, GoalDefinitionStateLimits
+from bark.world.goal_definition import GoalDefinition, GoalDefinitionPolygon, \
+  GoalDefinitionStateLimits, GoalDefinitionSequential
 from bark.world.map import *
 from bark.models.dynamic import *
 from bark.models.execution import *
@@ -44,6 +45,10 @@ class UniformVehicleDistribution(ScenarioGeneration):
       "The coordinates of the start of the ego goal,\
            if empty only ego goal end is used as center of polygon ",
       [] ]
+    self._ego_goal_distance = params_temp["EgoGoalDistance",
+      "The distance of sequential goals",
+      [] ]
+  
     self._ego_goal_state_limits = params_temp["EgoGoalStateLimits",
       "x,y and theta limits around center line of lane between start and end applied to both lateral sides \
        (only valid if start and end goal of ego are given)",
@@ -95,6 +100,26 @@ class UniformVehicleDistribution(ScenarioGeneration):
       scenario_list.append(scenario)
     return scenario_list
 
+  def sequential_goal(self):
+    goal_list = []
+    goal_polygon = Polygon2d([0, 0, 0],
+                                [Point2d(-1.5,0),
+                                Point2d(-1.5,8),
+                                Point2d(1.5,8),
+                                Point2d(1.5,0)])
+    goal_polygon = goal_polygon.translate(Point2d(self._ego_goal_end[0],
+                                                    self._ego_goal_end[1]))
+    goal_list.append(GoalDefinitionPolygon(goal_polygon))
+    
+    goal_polygon = goal_polygon.translate(Point2d(self._ego_goal_distance[0],
+                                                    self._ego_goal_distance[1]))
+    goal_list.append(GoalDefinitionPolygon(goal_polygon))
+
+    goal_polygon = goal_polygon.translate(Point2d(self._ego_goal_distance[0],
+                                                    self._ego_goal_distance[1]))
+    goal_list.append(GoalDefinitionPolygon(goal_polygon))
+    return goal_list
+
   def create_single_scenario(self):
     scenario = Scenario(map_file_name=self._map_file_name,
                         json_params=self._params.convert_to_dict())
@@ -124,7 +149,7 @@ class UniformVehicleDistribution(ScenarioGeneration):
 
     description=self._params.convert_to_dict()
     description["ScenarioGenerator"] = "UniformVehicleDistribution"
-    
+
 
     # EGO AGENT
     ego_agent=None
@@ -164,19 +189,22 @@ class UniformVehicleDistribution(ScenarioGeneration):
     
     agent_list.append(ego_agent)
 
-
+  
     
     # EGO Agent Goal Definition
     if  len(self._ego_goal_start) == 0:
-        goal_polygon = Polygon2d([0, 0, 0],
-                                [Point2d(-1.5,0),
-                                Point2d(-1.5,8),
-                                Point2d(1.5,8),
-                                Point2d(1.5,0)])
-        goal_polygon = goal_polygon.translate(Point2d(self._ego_goal_end[0],
-                                                    self._ego_goal_end[1]))
-        ego_agent.goal_definition = GoalDefinitionPolygon(goal_polygon)
+        # goal_polygon = Polygon2d([0, 0, 0],
+        #                         [Point2d(-1.5,0),
+        #                         Point2d(-1.5,8),
+        #                         Point2d(1.5,8),
+        #                         Point2d(1.5,0)])
+        # goal_polygon = goal_polygon.translate(Point2d(self._ego_goal_end[0],
+        #                                             self._ego_goal_end[1]))
+        # ego_agent.goal_definition = GoalDefinitionPolygon(goal_polygon)
+        # ego_agent.generate_local_map()
+        ego_agent.goal_definition = self.sequential_goal()
         ego_agent.generate_local_map()
+
     else:
         connecting_center_line, s_start, s_end, _, lane_id_end = \
         self.center_line_between_source_and_sink(world.map,
@@ -195,6 +223,7 @@ class UniformVehicleDistribution(ScenarioGeneration):
 
         ego_agent.goal_definition = GoalDefinitionStateLimits(polygon, (1.57-0.08, 1.57+0.08))
 
+    
     # only one agent is ego in the middle of all other agents
     scenario._agent_list = agent_list
     scenario._eval_agent_ids = [ego_agent.id]
