@@ -101,30 +101,39 @@ class UniformVehicleDistribution(ScenarioGeneration):
     return scenario_list
 
   def sequential_goal(self):
+    scenario = Scenario(map_file_name=self._map_file_name,
+                        json_params=self._params.convert_to_dict())
+    world = scenario.get_world_state()
     goal_list = []
     connecting_center_line, s_start, s_end, _, lane_id_end = \
         self.center_line_between_source_and_sink(world.map,
                                                  self._ego_goal_start,
                                                  self._ego_goal_end)
 
-        goal_center_line = get_line_from_s_interval(connecting_center_line, s_start, s_end)
+    goal_center_line = get_line_from_s_interval(connecting_center_line, s_start, s_end)
 
-        # build 1.polygon representing state limits
-        lims = self._ego_goal_state_limits
-        goal_limits_left = goal_center_line.translate(Point2d(-lims[0], -lims[1]))
-        goal_limits_right = goal_center_line.translate(Point2d(lims[0], lims[1]))
-        goal_limits_right.reverse()
-        goal_limits_left.append_linestring(goal_limits_right)
-        polygon = Polygon2d([0,0,0], goal_limits_left)
+    # build 1.polygon representing state limits
+    lims = self._ego_goal_state_limits
+    goal_limits_left = goal_center_line.translate(Point2d(-lims[0], -lims[1]))
+    goal_limits_right = goal_center_line.translate(Point2d(lims[0], lims[1]))
+    goal_limits_right.reverse()
+    goal_limits_left.append_linestring(goal_limits_right)
+    polygon = Polygon2d([0,0,0], goal_limits_left)
 
-        goal_definition = GoalDefinitionStateLimits(polygon, (1.57-0.08, 1.57+0.08))
-        goal_list.append(goal_definition)
+    goal_definition = GoalDefinitionStateLimits(polygon, (1.57-0.08, 1.57+0.08))
+    goal_list.append(goal_definition)
 
-        # build 2.polygon representing 2.goal
-        distance = self._ego_goal_distance
-        polygon = polygon.translate(Point2d(distance[0], distance[1]))
-        goal_definition = GoalDefinitionStateLimits(polygon, (1.57-0.08, 1.57+0.08))
-        goal_list.append(goal_definition)
+    # build 2.polygon representing 2.goal
+    distance = self._ego_goal_distance
+    polygon = polygon.translate(Point2d(distance[0], distance[1]))
+    goal_definition = GoalDefinitionStateLimits(polygon, (1.57-0.08, 1.57+0.08))
+    goal_list.append(goal_definition)
+
+    # build 3.polygon representing 3.goal
+    distance = self._ego_goal_distance
+    polygon = polygon.translate(Point2d(distance[0], distance[1]))
+    goal_definition = GoalDefinitionStateLimits(polygon, (1.57-0.08, 1.57+0.08))
+    goal_list.append(goal_definition)
 
     return GoalDefinitionSequential(goal_list)
 
