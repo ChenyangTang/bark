@@ -23,7 +23,7 @@ from modules.runtime.commons.xodr_parser import XodrParser
 
 import numpy as np
 import math
-
+import copy
 
 class UniformVehicleDistribution(ScenarioGeneration):
   def __init__(self, num_scenarios, params=None, random_seed=None):
@@ -48,7 +48,9 @@ class UniformVehicleDistribution(ScenarioGeneration):
     self._ego_goal_distance = params_temp["EgoGoalDistance",
       "The distance of sequential goals",
       [0, 30] ]
-  
+    self._ego_goal_number = params_temp["EgoGoalNumber",
+      "The number of sequential goals",
+      3 ]
     self._ego_goal_state_limits = params_temp["EgoGoalStateLimits",
       "x,y and theta limits around center line of lane between start and end applied to both lateral sides \
        (only valid if start and end goal of ego are given)",
@@ -100,15 +102,22 @@ class UniformVehicleDistribution(ScenarioGeneration):
       scenario_list.append(scenario)
     return scenario_list
 
-  def sequential_goal(self):
+  def sequential_goal(self, do_lane_change):
     scenario = Scenario(map_file_name=self._map_file_name,
                         json_params=self._params.convert_to_dict())
     world = scenario.get_world_state()
     goal_list = []
+    ego_goal_start = copy.deepcopy(self._ego_goal_start)
+    ego_goal_end = copy.deepcopy(self._ego_goal_end)
+
+    if do_lane_change == 0:
+      ego_goal_start[0]  += 4.
+      ego_goal_end[0] += 4.
+
     connecting_center_line, s_start, s_end, _, lane_id_end = \
         self.center_line_between_source_and_sink(world.map,
-                                                 self._ego_goal_start,
-                                                 self._ego_goal_end)
+                                                 ego_goal_start,
+                                                 ego_goal_end)
 
     goal_center_line = get_line_from_s_interval(connecting_center_line, s_start, s_end)
 
@@ -120,20 +129,11 @@ class UniformVehicleDistribution(ScenarioGeneration):
     goal_limits_left.append_linestring(goal_limits_right)
     polygon = Polygon2d([0,0,0], goal_limits_left)
 
-    goal_definition = GoalDefinitionStateLimits(polygon, (1.57-0.08, 1.57+0.08))
-    goal_list.append(goal_definition)
-
-    # build 2.polygon representing 2.goal
-    distance = self._ego_goal_distance
-    polygon = polygon.translate(Point2d(distance[0], distance[1]))
-    goal_definition = GoalDefinitionStateLimits(polygon, (1.57-0.08, 1.57+0.08))
-    goal_list.append(goal_definition)
-
-    # build 3.polygon representing 3.goal
-    distance = self._ego_goal_distance
-    polygon = polygon.translate(Point2d(distance[0], distance[1]))
-    goal_definition = GoalDefinitionStateLimits(polygon, (1.57-0.08, 1.57+0.08))
-    goal_list.append(goal_definition)
+    # build sequential goals
+    num = self._ego_goal_number[0]
+    for i in range(num):
+      goal_definition = GoalDefinitionStateLimits(polygon, (1.57-0.08, 1.57+0.08))
+      goal_list.append(goal_definition)
 
     return GoalDefinitionSequential(goal_list)
 
@@ -219,26 +219,12 @@ class UniformVehicleDistribution(ScenarioGeneration):
                                                     self._ego_goal_end[1]))
         ego_agent.goal_definition = GoalDefinitionPolygon(goal_polygon)
         ego_agent.generate_local_map()
-        # ego_agent.goal_definition = self.sequential_goal()
-        # ego_agent.generate_local_map()
 
     else:
-        # connecting_center_line, s_start, s_end, _, lane_id_end = \
-        # self.center_line_between_source_and_sink(world.map,
-        #                                          self._ego_goal_start,
-        #                                          self._ego_goal_end)
+      do_lane_change = np.random.randint(0, 2)
+      ego_agent.goal_definition = self.sequential_goal(do_lane_change)
+      ego_agent.goal_definition.lane_change = do_lane_change
 
-        # goal_center_line = get_line_from_s_interval(connecting_center_line, s_start, s_end)
-
-        # # build polygon representing state limits
-        # lims = self._ego_goal_state_limits
-        # goal_limits_left = goal_center_line.translate(Point2d(-lims[0], -lims[1]))
-        # goal_limits_right = goal_center_line.translate(Point2d(lims[0], lims[1]))
-        # goal_limits_right.reverse()
-        # goal_limits_left.append_linestring(goal_limits_right)
-        # polygon = Polygon2d([0,0,0], goal_limits_left)
-
-        ego_agent.goal_definition = self.sequential_goal()
 
     
     # only one agent is ego in the middle of all other agents

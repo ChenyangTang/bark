@@ -23,12 +23,14 @@ class GoalDefinitionSequential : public GoalDefinition  {
  public:
   GoalDefinitionSequential() : GoalDefinition(),
                                sequential_goals_(),
-                               last_sequential_goal_reached_(NO_GOAL_REACHED) {}
+                               last_sequential_goal_reached_(NO_GOAL_REACHED),
+                               do_lane_change_(0) {}
   GoalDefinitionSequential(const std::vector<GoalDefinitionPtr>&
                            sequential_goals) :
                            GoalDefinition(),
                            sequential_goals_(sequential_goals),
-                           last_sequential_goal_reached_(NO_GOAL_REACHED) {}
+                           last_sequential_goal_reached_(NO_GOAL_REACHED),
+                           do_lane_change_(0) {}
 
   void AddSequentialGoal(const GoalDefinitionPtr& sequential_goal) {
     sequential_goals_.push_back(sequential_goal);
@@ -39,12 +41,15 @@ class GoalDefinitionSequential : public GoalDefinition  {
   std::vector<GoalDefinitionPtr> get_sequential_goals() const {
     return sequential_goals_;
   }
-
+  int GetCurrentId() const { return last_sequential_goal_reached_; }
+  void SetLaneChange(int lane_change) { do_lane_change_ = lane_change; }
+  int GetLaneChange() const { return do_lane_change_; }
   virtual bool AtGoal(const modules::world::objects::Agent& agent);
 
  private:
   std::vector<GoalDefinitionPtr> sequential_goals_;
   int last_sequential_goal_reached_;
+  int do_lane_change_;
 };
 
 

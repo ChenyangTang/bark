@@ -77,17 +77,23 @@ void python_goal_definition(py::module m)
       return "bark.world.goal_definition.GoalDefinitionSequential";
     })
     .def("GetNextGoal", &GoalDefinitionSequential::GetNextGoal)
+    .def("GetCurrentId", &GoalDefinitionSequential::GetCurrentId)
     .def_property_readonly("sequential_goals", &GoalDefinitionSequential::get_sequential_goals)
+    .def_property("lane_change", &GoalDefinitionSequential::GetLaneChange, &GoalDefinitionSequential::SetLaneChange)
     .def(py::pickle(
         [](const GoalDefinitionSequential& g) -> py::tuple { // __getstate__
             /* Return a tuple that fully encodes the state of the object */
-            return py::make_tuple(g.get_sequential_goals());
+            return py::make_tuple(g.get_sequential_goals(), g.GetLaneChange());
         },
         [](py::tuple t) { // __setstate__
-          if (t.size() != 1)
-                throw std::runtime_error("Invalid GoalDefinitionSequential state!");
+          //if (t.size() != 1)
+          //      throw std::runtime_error("Invalid GoalDefinitionSequential state!");
 
-          return new GoalDefinitionSequential(t[0].cast<std::vector<GoalDefinitionPtr>>());
+          GoalDefinitionSequential goal = GoalDefinitionSequential(
+            t[0].cast<std::vector<GoalDefinitionPtr>>()
+          );
+          goal.SetLaneChange(t[1].cast<int>());
+          return goal;
         }));
 
 
