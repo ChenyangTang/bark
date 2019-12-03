@@ -46,10 +46,10 @@ class UniformVehicleDistribution(ScenarioGeneration):
            if empty only ego goal end is used as center of polygon ",
       [] ]
     self._ego_goal_distance = params_temp["EgoGoalDistance",
-      "The distance of sequential goals",
+      "The distance of sequential goals for ego car",
       [0, 30] ]
     self._ego_goal_number = params_temp["EgoGoalNumber",
-      "The number of sequential goals",
+      "The number of sequential goals for ego car",
       3 ]
     self._ego_goal_state_limits = params_temp["EgoGoalStateLimits",
       "x,y and theta limits around center line of lane between start and end applied to both lateral sides \
@@ -70,7 +70,17 @@ class UniformVehicleDistribution(ScenarioGeneration):
         source points. Lanes must be near these points (<0.5m) \
         Provide a list of lists with x,y-coordinates",
         [[ 5111.626, 5193.1725]] ]  
-    assert len(self._others_sink) == len(self._others_source)         
+    # assert len(self._others_sink) == len(self._others_source)      
+    self._other_goal_number = params_temp["OtherGoalNumber",
+      "The number of sequential goals for other agents",
+      3 ]   
+    self._other_goal_distance = params_temp["OtherGoalDistance",
+      "The distance of sequential goals for other agents",
+      [0, 30] ]
+    self._other_goal_state_limits = params_temp["OtherGoalStateLimits",
+      "x,y and theta limits around center line of lane between start and end applied to both lateral sides \
+       (only valid if start and end goal of ego are given)",
+       [0.1, 0, 0.08]]
     self._vehicle_distance_range = params_temp["VehicleDistanceRange",
       "Distance range between vehicles in meter given as tuple from which" + \
       "distances are sampled uniformly",
@@ -102,26 +112,26 @@ class UniformVehicleDistribution(ScenarioGeneration):
       scenario_list.append(scenario)
     return scenario_list
 
-  def sequential_goal(self, do_lane_change):
+  def sequential_goal(self, do_lane_change, goal_start, goal_end):
     scenario = Scenario(map_file_name=self._map_file_name,
                         json_params=self._params.convert_to_dict())
     world = scenario.get_world_state()
     goal_list = []
-    ego_goal_start = copy.deepcopy(self._ego_goal_start)
-    ego_goal_end = copy.deepcopy(self._ego_goal_end)
+    # goal_start = copy.deepcopy(goal_start)
+    # goal_end = copy.deepcopy(goal_end)
 
     if do_lane_change == 0:
-      ego_goal_start[0]  += 4.
-      ego_goal_end[0] += 4.
+      # need to change in the future
+      goal_start[0]  += 4.
+      goal_end[0] += 4.
 
     connecting_center_line, s_start, s_end, _, lane_id_end = \
         self.center_line_between_source_and_sink(world.map,
-                                                 ego_goal_start,
-                                                 ego_goal_end)
+                                                 goal_start,
+                                                 goal_end)
 
     goal_center_line = get_line_from_s_interval(connecting_center_line, s_start, s_end)
-
-    # build 1.polygon representing state limits
+    # build polygon representing state limits
     lims = self._ego_goal_state_limits
     goal_limits_left = goal_center_line.translate(Point2d(-lims[0], -lims[1]))
     goal_limits_right = goal_center_line.translate(Point2d(lims[0], lims[1]))
@@ -137,24 +147,23 @@ class UniformVehicleDistribution(ScenarioGeneration):
 
     return GoalDefinitionSequential(goal_list)
 
-  def create_single_scenario(self):
-    scenario = Scenario(map_file_name=self._map_file_name,
-                        json_params=self._params.convert_to_dict())
-    world = scenario.get_world_state()
+  def create_agents_on_line(self, world, sinks):
     agent_list = []
-    # OTHER AGENTS
+    print("other source", self._others_source)
+    # create all agents
     for idx, source in enumerate(self._others_source):
       connecting_center_line, s_start, s_end, _, lane_id_end = \
         self.center_line_between_source_and_sink(world.map,
                                                  source,
-                                                 self._others_sink[idx])
+                                                 sinks[idx])
+      goal_center_line = get_line_from_s_interval(connecting_center_line, s_start, s_end)
       goal_polygon = Polygon2d([0, 0, 0],
                                [Point2d(-1.5,0),
                                 Point2d(-1.5,8),
                                 Point2d(1.5,8),
                                 Point2d(1.5,0)])
-      goal_polygon = goal_polygon.translate(Point2d(self._others_sink[idx][0],
-                                                    self._others_sink[idx][1]))
+      goal_polygon = goal_polygon.translate(Point2d(sinks[idx][0],
+                                                    sinks[idx][1]))
       goal_definition = GoalDefinitionPolygon(goal_polygon)
       agent_list.extend(
         self.place_agents_along_linestring(world,
@@ -163,69 +172,30 @@ class UniformVehicleDistribution(ScenarioGeneration):
                                            s_end,
                                            self._agent_params,
                                            goal_definition))
+    return agent_list
 
+  def create_single_scenario(self):
+    scenario = Scenario(map_file_name=self._map_file_name,
+                        json_params=self._params.convert_to_dict())
+    world = scenario.get_world_state()
+
+    # creat all agents on both lanes
+    agent_list = self.create_agents_on_line(world, self._others_sink)
     description=self._params.convert_to_dict()
     description["ScenarioGenerator"] = "UniformVehicleDistribution"
 
+    # choose which vehicle will be the ego agent
+    num_agents = len(agent_list)
+    ego_agent = agent_list[math.floor(num_agents/4)]
 
-    # EGO AGENT
-    ego_agent=None
-    if len(self._ego_route) == 0:
-        # take agent in the middle of list 
-        num_agents = len(agent_list)
-        ego_agent = agent_list[math.floor(num_agents/4)] 
-    else:
-        connecting_center_line, s_start, s_end, _, lane_id_end = \
-        self.center_line_between_source_and_sink(world.map,
-                                                 self._ego_route[0],
-                                                 self._ego_route[1])
-
-        sego = self.sample_srange_uniform([s_start, s_end])
-        xy_point =  get_point_at_s(connecting_center_line, sego)
-        angle = get_tangent_angle_at_s(connecting_center_line, sego)
-        velocity = self.sample_velocity_uniform(self._ego_velocity_range)
-        agent_state = np.array([0, xy_point.x(), xy_point.y(), angle, velocity ])
-
-        agent_params = self._agent_params.copy()
-        agent_params["state"] = agent_state
-        # goal for driving corridor generation
-        goal_polygon = Polygon2d([0, 0, 0],
-                               [Point2d(-1.5,0),
-                                Point2d(-1.5,8),
-                                Point2d(1.5,8),
-                                Point2d(1.5,0)])
-        goal_polygon = goal_polygon.translate(Point2d(self._ego_route[1][0],
-                                                    self._ego_route[1][1]))
-        goal_definition = GoalDefinitionPolygon(goal_polygon)
-        agent_params["goal_definition"] = goal_definition
-        agent_params["map_interface"] = world.map
-
-        converter = ModelJsonConversion()
-        ego_agent = converter.agent_from_json(agent_params, self._params)
-        # TODO(@bernhard): ensure that ego agent not collides with others
-    
-    agent_list.append(ego_agent)
-
-  
-    
-    # EGO Agent Goal Definition
-    if  len(self._ego_goal_start) == 0:
-        goal_polygon = Polygon2d([0, 0, 0],
-                                [Point2d(-1.5,0),
-                                Point2d(-1.5,8),
-                                Point2d(1.5,8),
-                                Point2d(1.5,0)])
-        goal_polygon = goal_polygon.translate(Point2d(self._ego_goal_end[0],
-                                                    self._ego_goal_end[1]))
-        ego_agent.goal_definition = GoalDefinitionPolygon(goal_polygon)
-        ego_agent.generate_local_map()
-
-    else:
-      do_lane_change = np.random.randint(0, 2)
-      ego_agent.goal_definition = self.sequential_goal(do_lane_change)
-      ego_agent.goal_definition.lane_change = do_lane_change
-
-
+    # TODO: all agents
+    do_lane_change = np.random.randint(0, 2)
+    # the ego agent already has a goal def.
+    ego_agent.goal_definition = \
+      self.sequential_goal(do_lane_change,
+                           self._ego_goal_start,
+                           self._ego_goal_end)
+    ego_agent.goal_definition.lane_change = do_lane_change
     
     # only one agent is ego in the middle of all other agents
     scenario._agent_list = agent_list
