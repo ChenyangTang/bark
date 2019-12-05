@@ -51,7 +51,7 @@ class UniformVehicleDistribution(ScenarioGeneration):
     self._ego_goal_number = params_temp["EgoGoalNumber",
       "The number of sequential goals for ego car",
       3 ]
-    self._ego_goal_state_limits = params_temp["EgoGoalStateLimits",
+    self._goal_state_limits = params_temp["GoalStateLimits",
       "x,y and theta limits around center line of lane between start and end applied to both lateral sides \
        (only valid if start and end goal of ego are given)",
        [0.1, 0, 0.08]]
@@ -70,7 +70,7 @@ class UniformVehicleDistribution(ScenarioGeneration):
         source points. Lanes must be near these points (<0.5m) \
         Provide a list of lists with x,y-coordinates",
         [[ 5111.626, 5193.1725]] ]  
-    # assert len(self._others_sink) == len(self._others_source)      
+    assert len(self._others_sink) == len(self._others_source)      
     self._other_goal_number = params_temp["OtherGoalNumber",
       "The number of sequential goals for other agents",
       3 ]   
@@ -117,10 +117,10 @@ class UniformVehicleDistribution(ScenarioGeneration):
                         json_params=self._params.convert_to_dict())
     world = scenario.get_world_state()
     goal_list = []
-    # goal_start = copy.deepcopy(goal_start)
-    # goal_end = copy.deepcopy(goal_end)
+    goal_start = copy.deepcopy(goal_start)
+    goal_end = copy.deepcopy(goal_end)
 
-    if do_lane_change == 0:
+    if do_lane_change == 1:
       # need to change in the future
       goal_start[0]  += 4.
       goal_end[0] += 4.
@@ -132,7 +132,7 @@ class UniformVehicleDistribution(ScenarioGeneration):
 
     goal_center_line = get_line_from_s_interval(connecting_center_line, s_start, s_end)
     # build polygon representing state limits
-    lims = self._ego_goal_state_limits
+    lims = self._goal_state_limits
     goal_limits_left = goal_center_line.translate(Point2d(-lims[0], -lims[1]))
     goal_limits_right = goal_center_line.translate(Point2d(lims[0], lims[1]))
     goal_limits_right.reverse()
@@ -144,12 +144,11 @@ class UniformVehicleDistribution(ScenarioGeneration):
     for i in range(num):
       goal_definition = GoalDefinitionStateLimits(polygon, (1.57-0.08, 1.57+0.08))
       goal_list.append(goal_definition)
-
     return GoalDefinitionSequential(goal_list)
 
   def create_agents_on_line(self, world, sinks):
     agent_list = []
-    print("other source", self._others_source)
+
     # create all agents
     for idx, source in enumerate(self._others_source):
       connecting_center_line, s_start, s_end, _, lane_id_end = \
@@ -189,14 +188,21 @@ class UniformVehicleDistribution(ScenarioGeneration):
     ego_agent = agent_list[math.floor(num_agents/4)]
 
     # TODO: all agents
+    # create sequential goal for all agents
+    agent_num = len(agent_list)
     do_lane_change = np.random.randint(0, 2)
-    # the ego agent already has a goal def.
-    ego_agent.goal_definition = \
-      self.sequential_goal(do_lane_change,
+    
+    for agent in agent_list:
+      if agent_list.index(agent) < (agent_num//2):
+        if agent == ego_agent: local_para = do_lane_change
+        else: local_para = 0
+      else: local_para = 1
+      agent.goal_definition = \
+      self.sequential_goal(local_para,
                            self._ego_goal_start,
                            self._ego_goal_end)
     ego_agent.goal_definition.lane_change = do_lane_change
-    
+
     # only one agent is ego in the middle of all other agents
     scenario._agent_list = agent_list
     scenario._eval_agent_ids = [ego_agent.id]
