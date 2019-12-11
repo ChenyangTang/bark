@@ -20,7 +20,8 @@ class BaseViewer(Viewer):
         # color parameters
         # agents
         self.color_other_agents = params["Visualization"]["Agents"]["Color"]["Other", "Color of other agents", (0.7,0.7,0.7)]
-        self.color_eval_agents = params["Visualization"]["Agents"]["Color"]["Controlled", "Color of controlled, evaluated agents", (0.9,0,0)]
+        self.color_eval_agents_1 = params["Visualization"]["Agents"]["Color"]["Controlled", "Color of controlled, evaluated agents", (0.9,0,0)]
+        self.color_eval_agents_2 = params["Visualization"]["Agents"]["Color"]["Controlled_2", "Color of controlled, evaluated agents", (0,0.9,0)]
         self.alpha_agents = params["Visualization"]["Agents"]["AlphaVehicle", "Alpha of agents", 0.8]
         self.route_color =  params["Visualization"]["Agents"]["ColorRoute", "Color of agents routes", (0.2,0.2,0.2)]
         self.draw_route = params["Visualization"]["Agents"]["DrawRoute", "Draw Route of each agent", False]
@@ -51,7 +52,7 @@ class BaseViewer(Viewer):
         if self.follow_agent_id is not None:
             if isinstance(self.follow_agent_id, bool) and \
                      eval_agent_ids is not None and \
-                     len(eval_agent_ids) == 1:
+                     len(eval_agent_ids) == 2:
                 draw_eval_agent_id = eval_agent_ids[0]
             else:
                 draw_eval_agent_id = self.follow_agent_id
@@ -143,15 +144,15 @@ class BaseViewer(Viewer):
                 alpha = 0 if alpha<0 else alpha
                 self.drawPolygon2d(transformed_polygon, color, alpha) # fade to 0.2 after 10 steps
     
-    def drawGoalDefinition(self, goal_definition):
+    def drawGoalDefinition(self, goal_definition, color="blue"):
         if isinstance(goal_definition, GoalDefinitionPolygon):
-            self.drawPolygon2d(goal_definition.goal_shape, self.eval_goal_color, alpha=0.9)
+            self.drawPolygon2d(goal_definition.goal_shape, color, alpha=0.5)
         elif isinstance(goal_definition, GoalDefinitionStateLimits):
-            self.drawPolygon2d(goal_definition.xy_limits, self.eval_goal_color, alpha=0.9)
+            self.drawPolygon2d(goal_definition.xy_limits, color, alpha=0.5)
         elif isinstance(goal_definition, GoalDefinitionSequential):
             prev_center = np.array([])
             for idx, goal_def in enumerate(goal_definition.sequential_goals):
-                self.drawGoalDefinition(goal_def)
+                self.drawGoalDefinition(goal_def, color)
                 goal_pos = None
                 if isinstance(goal_def, GoalDefinitionPolygon):
                     goal_pos = goal_def.goal_shape.center
@@ -162,26 +163,40 @@ class BaseViewer(Viewer):
                     line = Line2d()
                     line.addPoint(Point2d(prev_center[0], prev_center[1]))
                     line.addPoint(Point2d(goal_pos[0], goal_pos[1]))
-                    self.drawLine2d(line,color=self.eval_goal_color, alpha=0.9)
+                    self.drawLine2d(line,color=self.eval_goal_color, alpha=0.5)
                 prev_center = goal_pos
 
     def drawWorld(self, world, eval_agent_ids=None, filename=None, scenario_idx=None):
         self.clear()
         self._update_world_view_range(world, eval_agent_ids)
         if world.map:
-            self.drawMap(world.map.get_open_drive_map())
+          self.drawMap(world.map.get_open_drive_map())
 
         # draw agents
+        # TODO: split into two loops
+           
         for _, agent in world.agents.items():
-            if eval_agent_ids and agent.id in eval_agent_ids:
-                color = self.color_eval_agents
-            else:
-                color = self.color_other_agents
+          if eval_agent_ids and agent.id not in eval_agent_ids:
+            color = self.color_other_agents
+            if self.draw_eval_goals and agent.goal_definition:
+              self.drawGoalDefinition(agent.goal_definition, color)
             self.drawAgent(agent, color)
 
-            if self.draw_eval_goals and agent.goal_definition:
-                self.drawGoalDefinition(agent.goal_definition)
-
+        for _, agent in world.agents.items():
+          if eval_agent_ids:
+            # color of first eval_agent is red
+            if agent.id == eval_agent_ids[0]:
+                color = self.color_eval_agents_1
+                if self.draw_eval_goals and agent.goal_definition:
+                    self.drawGoalDefinition(agent.goal_definition, color)
+                self.drawAgent(agent, color)
+            # color of second eval_agent is blue
+            elif agent.id == eval_agent_ids[1]:
+                color = self.color_eval_agents_2
+                if self.draw_eval_goals and agent.goal_definition:
+                    self.drawGoalDefinition(agent.goal_definition, color)
+                self.drawAgent(agent, color)
+        
         self.drawText(position=(0.1,0.9), text="Scenario {}".format(scenario_idx), fontsize=18)
 
     def drawMap(self, map):

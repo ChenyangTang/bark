@@ -97,7 +97,7 @@ class UniformVehicleDistribution(ScenarioGeneration):
       scenario_list.append(scenario)
     return scenario_list
 
-  def sequential_goal(self, do_lane_change, goal_start, goal_end):
+  def sequential_goal(self, do_lane_change, goal_start, goal_end, reverse):
     scenario = Scenario(map_file_name=self._map_file_name,
                         json_params=self._params.convert_to_dict())
     world = scenario.get_world_state()
@@ -105,10 +105,16 @@ class UniformVehicleDistribution(ScenarioGeneration):
     goal_start = copy.deepcopy(goal_start)
     goal_end = copy.deepcopy(goal_end)
 
-    if do_lane_change == 1:
-      # need to change in the future
-      goal_start[0]  += 4.
-      goal_end[0] += 4.
+    if reverse == 0:
+      if do_lane_change == 1:
+        # need to change in the future
+        goal_start[0]  += 4.
+        goal_end[0] += 4.
+    else:
+      if do_lane_change == 0:
+        goal_start[0]  += 4.
+        goal_end[0] += 4.
+
 
     connecting_center_line, s_start, s_end, _, lane_id_end = \
         self.center_line_between_source_and_sink(world.map,
@@ -170,27 +176,38 @@ class UniformVehicleDistribution(ScenarioGeneration):
 
     # choose which vehicle will be the ego agent
     num_agents = len(agent_list)
-    ego_agent = agent_list[math.floor(num_agents/4)]
+    ego_agent_1 = agent_list[math.floor(num_agents/4)]
+    ego_agent_2 = agent_list[math.floor(num_agents*3/4)]
+    ego_agent = [ego_agent_1, ego_agent_2]
 
     # TODO: all agents
     # create sequential goal for all agents
     agent_num = len(agent_list)
     do_lane_change = np.random.randint(0, 2)
+
     
     for agent in agent_list:
+      reverse = 0
       if agent_list.index(agent) < (agent_num//2):
-        if agent == ego_agent: local_para = do_lane_change
+        if agent in ego_agent: local_para = do_lane_change
         else: local_para = 0
-      else: local_para = 1
+      else: 
+        if agent in ego_agent: 
+          local_para = do_lane_change
+          reverse = 1
+        else: local_para = 1
       agent.goal_definition = \
       self.sequential_goal(local_para,
                            self._goal_start,
-                           self._goal_end)
-    ego_agent.goal_definition.lane_change = do_lane_change
+                           self._goal_end,
+                           reverse)
+    ego_agent[0].goal_definition.lane_change = do_lane_change
+    ego_agent[1].goal_definition.lane_change = do_lane_change
 
     # only one agent is ego in the middle of all other agents
     scenario._agent_list = agent_list
-    scenario._eval_agent_ids = [ego_agent.id]
+    # here we want mult. agents
+    scenario._eval_agent_ids = [ego_agent[0].id, ego_agent[1].id]
     return scenario
 
   def place_agents_along_linestring(self,
