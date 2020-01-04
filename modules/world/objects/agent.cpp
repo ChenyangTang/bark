@@ -34,7 +34,8 @@ execution_model_(execution_model),
 local_map_(new LocalMap(goal_definition, map_interface)),
 history_(),
 max_history_length_(10),
-goal_definition_(goal_definition) {
+goal_definition_(goal_definition),
+move_automatically_(true) {
   if (params) {
     max_history_length_ = params->get_int(
     "MaxHistoryLength",
@@ -61,7 +62,8 @@ Agent::Agent(const Agent& other_agent) :
   local_map_(other_agent.local_map_),
   history_(other_agent.history_),
   max_history_length_(other_agent.max_history_length_),
-  goal_definition_(other_agent.goal_definition_) {}
+  goal_definition_(other_agent.goal_definition_),
+  move_automatically_(other_agent.GetMoveAutomatically()) {}
 
 
 void Agent::BehaviorPlan(const float &dt, const ObservedWorld &observed_world) {

@@ -99,6 +99,8 @@ class Agent : public Object {
 
   void Execute(const float& world_time);
 
+  void SetMoveAutomatically(bool ma) { move_automatically_ =ma; }
+  bool GetMoveAutomatically() const { return move_automatically_; }
   bool AtGoal() const;
 
   void GenerateLocalMap();
@@ -118,6 +120,7 @@ class Agent : public Object {
   // TODO(fortiss): move max_history_length_ to parameter
   uint32_t max_history_length_;
   modules::world::goal_definition::GoalDefinitionPtr goal_definition_;
+  bool move_automatically_;
 };
 
 typedef std::shared_ptr<Agent> AgentPtr;

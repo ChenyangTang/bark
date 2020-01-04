@@ -29,9 +29,10 @@ void python_world(py::module m) {
     .def("__repr__", [](const World &a) {
       return "bark.world.World";
     })
-    .def("step", &World::Step)
+    .def("step", py::overload_cast<const float&>(&World::Step))
     .def("do_planning", &World::DoPlanning)
     .def("do_execution", &World::DoExecution)
+    .def("stepAgent", py::overload_cast<const float&, const AgentId&>(&World::Step))
     .def("observe", &World::Observe)
     .def("add_agent", &World::add_agent)
     .def("add_object", &World::add_object)

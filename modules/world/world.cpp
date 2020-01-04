@@ -43,27 +43,35 @@ void World::add_evaluator(const std::string& name,
   evaluators_[name] = evaluator;
 }
 
-
-void World::DoPlanning(const float& delta_time) {
+void World::DoPlanning(const float&delta_time, const AgentId& agent_id) {
     UpdateAgentRTree();
     UpdateHorizonDrivingCorridors();
     WorldPtr current_world(this->Clone());
+    // TODO: if (agent_id is not -1)
+    // then just move one agent
 
     // Behavioral and execution planning
     for (auto agent : agents_) {
       //! clone current world
+      // if (agent.second->GetMoveAutomatically() == false) {
       ObservedWorld observed_world(current_world,
-                                   agent.first);
+                                  agent.first);
       agent.second->BehaviorPlan(delta_time, observed_world);
       agent.second->ExecutionPlan(delta_time);
+      // }
     }
 }
 
-void World::DoExecution(const float& delta_time) {
+void World::DoExecution(const float&delta_time, const AgentId& agent_id) {
   world_time_ += delta_time;
+  // TODO: if (agent_id is not -1)
+  // then just move one agent
+
   // Execute motion
   for (auto agent : agents_) {
-      agent.second->Execute(world_time_);
+    // if (agent.second->GetMoveAutomatically() == false) {
+    agent.second->Execute(world_time_);
+    // }
   }
   if (remove_agents_) {
     RemoveOutOfMapAgents();
@@ -91,6 +99,11 @@ void World::UpdateHorizonDrivingCorridors() {
     // TODO(@hart): parameter
     agent.second->UpdateDrivingCorridor(40.0);
   }
+}
+
+void World::Step(const float&delta_time, const AgentId& agent_id){
+  DoPlanning(delta_time, agent_id);
+  DoExecution(delta_time, agent_id);
 }
 
 void World::Step(const float& delta_time) {

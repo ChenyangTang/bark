@@ -91,10 +91,11 @@ class World : public commons::BaseType {
   bool Valid() const;
   std::vector<ObservedWorld> Observe(const std::vector<AgentId>& agent_ids);
   void Step(const float& delta_time);
+  void Step(const float& delta_time, const AgentId& agent_id);
   void UpdateHorizonDrivingCorridors();
 
-  void DoPlanning(const float& delta_time);
-  void DoExecution(const float& delta_time);
+  void DoPlanning(const float& delta_time, const AgentId& agent_id =-1);
+  void DoExecution(const float& delta_time, const AgentId& agent_id = -1);
 
   void UpdateAgentRTree();
   void RemoveOutOfMapAgents();

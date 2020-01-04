@@ -55,7 +55,7 @@ void python_agent(py::module m)
       .def_property("local_map", &Agent::get_local_map, &Agent::set_local_map)
       .def_property_readonly("history", &Agent::get_state_input_history)
       .def_property_readonly("shape", &Agent::get_shape)
-      .def_property_readonly("id", &Agent::get_agent_id)
+      .def_property_readonly("id", &Agent::get_agent_id) //
       .def_property_readonly("followed_trajectory", &Agent::get_execution_trajectory)
       .def_property_readonly("planned_trajectory", &Agent::get_behavior_trajectory)
       .def_property("behavior_model", &Agent::get_behavior_model, &Agent::set_behavior_model)
@@ -65,6 +65,8 @@ void python_agent(py::module m)
       .def_property_readonly("state", &Agent::get_current_state)
       .def_property("goal_definition", &Agent::get_goal_definition, &Agent::set_goal_definition)
       .def("set_agent_id", &Object::set_agent_id)
+      .def("set_move_automatically", &Agent::SetMoveAutomatically)
+      .def("get_move_automatically", &Agent::GetMoveAutomatically)
       .def("generate_local_map", &Agent::GenerateLocalMap)
       .def(py::pickle(
         [](const Agent& a) -> py::tuple { // __getstate__
@@ -79,10 +81,11 @@ void python_agent(py::module m)
                                   a.get_execution_model(), // 7
                                   a.get_dynamic_model(), // 8
                                   a.get_current_state(), // 9
-                                  goal_definition_to_python(a.get_goal_definition())); // 10
+                                  goal_definition_to_python(a.get_goal_definition()), // 10
+                                  a.GetMoveAutomatically()); // 11
         },
         [](py::tuple t) { // __setstate__
-            if (t.size() != 11)
+            if (t.size() != 12)
                 throw std::runtime_error("Invalid agent state!");
 
             using modules::models::dynamic::SingleTrackModel;
@@ -99,6 +102,7 @@ void python_agent(py::module m)
                     python_to_goal_definition(t[10].cast<py::tuple>())); 
             agent.set_agent_id(t[3].cast<AgentId>());
             agent.set_local_map(std::make_shared<LocalMap>(t[0].cast<LocalMap>()));
+            agent.SetMoveAutomatically(t[11].cast<bool>());
             return agent;
             // todo: deserialize planned, followed trajectory and map interface
         }));
