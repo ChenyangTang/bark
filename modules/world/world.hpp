@@ -94,8 +94,11 @@ class World : public commons::BaseType {
   void Step(const float& delta_time, const AgentId& agent_id);
   void UpdateHorizonDrivingCorridors();
 
-  void DoPlanning(const float& delta_time, const AgentId& agent_id =-1);
-  void DoExecution(const float& delta_time, const AgentId& agent_id = -1);
+  void DoPlanning(const float& delta_time, const AgentId& agent_id);
+  void DoExecution(const float& delta_time, const AgentId& agent_id);
+
+  void DoPlanning(const float& delta_time);
+  void DoExecution(const float& delta_time);
 
   void UpdateAgentRTree();
   void RemoveOutOfMapAgents();

@@ -53,7 +53,7 @@ dynamic::Trajectory DynamicBehaviorModel::Plan(
                                 "state vector length", 5));
 
   // std::cout << "State:" << ego_vehicle_state << std::endl;
-  // std::cout << "Action:" << \
+  std::cout << "Action:" << \
     boost::get<Input>(observed_world.get_ego_behavior_model()->get_last_action()) << std::endl;
 
   traj.row(0) = ego_vehicle_state;

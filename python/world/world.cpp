@@ -30,8 +30,10 @@ void python_world(py::module m) {
       return "bark.world.World";
     })
     .def("step", py::overload_cast<const float&>(&World::Step))
-    .def("do_planning", &World::DoPlanning)
-    .def("do_execution", &World::DoExecution)
+    .def("do_planning", py::overload_cast<const float&>(&World::DoPlanning))
+    .def("do_planning_agent", py::overload_cast<const float&, const AgentId&>(&World::DoPlanning))
+    .def("do_execution", py::overload_cast<const float&>(&World::DoExecution))
+    .def("do_execution_agent", py::overload_cast<const float&, const AgentId&>(&World::DoExecution))
     .def("stepAgent", py::overload_cast<const float&, const AgentId&>(&World::Step))
     .def("observe", &World::Observe)
     .def("add_agent", &World::add_agent)
