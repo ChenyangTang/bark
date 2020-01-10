@@ -6,6 +6,7 @@
 #include <utility>
 #include "modules/world/map/local_map.hpp"
 #include "modules/world/map/map_interface.hpp"
+#include "modules/geometry/polygon.hpp"
 
 namespace modules {
 namespace world {
@@ -16,9 +17,9 @@ using geometry::FindNearestIdx;
 using geometry::distance;
 using models::dynamic::StateDefinition;
 
-LaneId LocalMap::GoalLaneIdFromGoalDefinitionPolygon(const GoalDefinitionPolygon& goal_definition) {
-  modules::geometry::Point2d goal_center(goal_definition.get_shape().center_(0),
-                                         goal_definition.get_shape().center_(1));
+LaneId LocalMap::GoalLaneIdFromPolygon(const modules::geometry::Polygon& goal_definition) {
+  modules::geometry::Point2d goal_center(goal_definition.center_(0),
+                                         goal_definition.center_(1));
   std::vector<opendrive::LanePtr> nearest_lanes;
 
   if(map_interface_->FindNearestLanes(goal_center, 1, nearest_lanes)) {
@@ -52,7 +53,7 @@ bool LocalMap::Generate(Point2d point) {
     return false; //< todo: handle this better
   }
 
-  goal_lane_id_ = GoalLaneIdFromGoalDefinitionPolygon(*goal_definition_polygon);
+  goal_lane_id_ = GoalLaneIdFromPolygon(goal_definition_->get_shape());
 
   std::vector<LanePtr> lanes;
   map_interface_->FindNearestLanes(point, 1, lanes);

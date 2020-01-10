@@ -37,15 +37,22 @@ bool GoalDefinitionSequential::AtGoal(
   }
 }
 
-GoalDefinitionPtr GoalDefinitionSequential::GetNextGoal(
-  const modules::world::objects::Agent& agent) {
+GoalDefinitionPtr GoalDefinitionSequential::GetNextGoal() const {
   BARK_EXPECT_TRUE (!sequential_goals_.empty());
   if (last_sequential_goal_reached_ == NO_GOAL_REACHED)
-    return sequential_goals_[0];
+    return sequential_goals_.at(0);
 
   if (last_sequential_goal_reached_ + 1 < sequential_goals_.size())
-    return sequential_goals_[last_sequential_goal_reached_+1];
+    return sequential_goals_.at(last_sequential_goal_reached_+1);
   return nullptr;
+}
+
+GoalDefinitionPtr GoalDefinitionSequential::GetCurrentGoal() const {
+  BARK_EXPECT_TRUE (!sequential_goals_.empty());
+  if (last_sequential_goal_reached_ == NO_GOAL_REACHED)
+    return sequential_goals_.at(0);
+
+  return sequential_goals_.at(last_sequential_goal_reached_);
 }
 
 }  // namespace goal_definition

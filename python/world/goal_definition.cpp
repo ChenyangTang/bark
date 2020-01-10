@@ -78,6 +78,7 @@ void python_goal_definition(py::module m)
     })
     .def("GetNextGoal", &GoalDefinitionSequential::GetNextGoal)
     .def("GetCurrentId", &GoalDefinitionSequential::GetCurrentId)
+    .def_property_readonly("goal_shape", &GoalDefinitionSequential::get_shape)
     .def_property_readonly("sequential_goals", &GoalDefinitionSequential::get_sequential_goals)
     .def_property("lane_change", &GoalDefinitionSequential::GetLaneChange, &GoalDefinitionSequential::SetLaneChange)
     .def(py::pickle(

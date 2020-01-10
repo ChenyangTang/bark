@@ -65,7 +65,7 @@ void World::DoPlanning(const float& delta_time) {
     for (auto agent : agents_) {
       //! clone current world
       if (agent.second->GetMoveAutomatically() == true) {
-        std::cout << "AgentID: " << agent.first << std::endl;
+        // std::cout << "AgentID: " << agent.first << std::endl;
         ObservedWorld observed_world(current_world,
                                     agent.first);
         agent.second->BehaviorPlan(delta_time, observed_world);
@@ -91,7 +91,7 @@ void World::DoExecution(const float& delta_time) {
   
   for (auto agent : agents_) {
     if (agent.second->GetMoveAutomatically() == true) {
-      std::cout << "AgentID: " << agent.first << std::endl;
+      // std::cout << "AgentID: " << agent.first << std::endl;
       agent.second->Execute(world_time_);
     }
   }
