@@ -60,7 +60,8 @@ struct DrivingLaneTypePredicate { // both edge and vertex
   bool operator()(LaneGraph::edge_descriptor ed) const      { 
     bool filtered_s = (*g)[boost::source(ed, *g)].lane->get_lane_type()==LaneType::DRIVING;
     bool filtered_t = (*g)[boost::target(ed, *g)].lane->get_lane_type()==LaneType::DRIVING;
-        
+    bool filtered_e = (*g)[ed].edge_type==LaneEdgeType::SUCCESSOR_EDGE;
+    
     bool filtered = filtered_s && filtered_t;
     return filtered; 
   } 
@@ -77,6 +78,9 @@ typedef boost::filtered_graph<LaneGraph, DrivingLaneTypePredicate, DrivingLaneTy
 class Roadgraph {
  public:
   Roadgraph() {}
+
+  // TODO: Move to LaneGraph, but LaneGraph is not wrapped to python
+  PolygonPtr get_lane_polygon_by_id(const LaneId &lane_id);
 
   LaneId add_lane(const RoadId& road_id, const LanePtr& laneptr);
 
@@ -112,6 +116,10 @@ class Roadgraph {
   //! @param from the query answer return the lane id that is not but_not
   std::pair<LaneId, bool> get_outer_neighbor_but_not(const LaneId& lane_id, const LaneId& but_not);
 
+  //! LaneIds of all neighboring lanes in the same driving direction. Includes neighbors of neighbors
+  //! @note cannot be called with the planview lane!
+  std::vector<LaneId> get_all_neighbors(const LaneId &lane_id) const;
+  
   bool has_lane(const LaneId& lane_id) const;
 
   void print_graph(const char* filename);
@@ -161,6 +169,7 @@ class Roadgraph {
 
   void Generate(OpenDriveMapPtr map);
 
+  RoadId get_road_by_lane_id(const LaneId &lane_id);
 
  private:
   LaneGraph g_;

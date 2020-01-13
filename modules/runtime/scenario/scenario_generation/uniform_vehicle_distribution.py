@@ -58,7 +58,7 @@ class UniformVehicleDistribution(ScenarioGeneration):
     assert len(self._sinks) == len(self._sources)      
     self._goal_number = params_temp["GoalNumber",
       "The number of sequential goals for other agents",
-      3 ]   
+      1 ]   
     self._goal_distance = params_temp["GoalDistance",
       "The distance of sequential goals for other agents",
       [0, 30] ]
@@ -176,8 +176,8 @@ class UniformVehicleDistribution(ScenarioGeneration):
 
     # choose which vehicle will be the ego agent
     num_agents = len(agent_list)
-    ego_agent_1 = agent_list[math.floor(num_agents/4)]
-    ego_agent_2 = agent_list[math.floor(num_agents*3/4)]
+    ego_agent_1 = agent_list[math.floor(num_agents/4 + 1)]
+    ego_agent_2 = agent_list[math.floor(num_agents*3/4 - 1)]
     ego_agent = [ego_agent_1, ego_agent_2]
 
     # TODO: all agents
