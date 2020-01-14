@@ -176,8 +176,9 @@ class UniformVehicleDistribution(ScenarioGeneration):
 
     # choose which vehicle will be the ego agent
     num_agents = len(agent_list)
-    ego_agent_1 = agent_list[math.floor(num_agents/4 + 1)]
-    ego_agent_2 = agent_list[math.floor(num_agents*3/4 - 1)]
+    # print(num_agents)
+    ego_agent_1 = agent_list[0]    #[math.floor(num_agents)]
+    ego_agent_2 = agent_list[2]     #[math.floor(num_agents + 1)]
     ego_agent = [ego_agent_1, ego_agent_2]
 
     # TODO: all agents
