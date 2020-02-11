@@ -70,14 +70,10 @@ class UniformVehicleDistribution(ScenarioGeneration):
       "Distance range between vehicles in meter given as tuple from which" + \
       "distances are sampled uniformly",
       (10, 20)]
-    self._other_velocity_range = params_temp["OtherVehicleVelocityRange",
+    self._velocity_range = params_temp["VehicleVelocityRange",
       "Lower and upper bound of velocity in km/h given as tuple from which" + \
       " velocities are sampled uniformly",
-      (20,30)]
-    self._ego_velocity_range = params_temp["EgoVehicleVelocityRange",
-      "Lower and upper bound of velocity in km/h given as tuple from which" + \
-      " velocities are sampled uniformly",
-      (20,30)]
+      (10,12)]
     json_converter = ModelJsonConversion()
     self._agent_params = params_temp["VehicleModel",
       "How to model the other agents",
@@ -178,13 +174,13 @@ class UniformVehicleDistribution(ScenarioGeneration):
     num_agents = len(agent_list)
     # print(num_agents)
     ego_agent_1 = agent_list[0]    #[math.floor(num_agents)]
-    ego_agent_2 = agent_list[2]     #[math.floor(num_agents + 1)]
+    ego_agent_2 = agent_list[-1]     #[math.floor(num_agents + 1)]
     ego_agent = [ego_agent_1, ego_agent_2]
 
     # TODO: all agents
     # create sequential goal for all agents
     agent_num = len(agent_list)
-    do_lane_change = np.random.randint(0, 2)
+    do_lane_change = 1 #np.random.randint(0, 2)
 
     
     for agent in agent_list:
@@ -229,7 +225,7 @@ class UniformVehicleDistribution(ScenarioGeneration):
       xy_point =  get_point_at_s(linestring, s)
       angle = get_tangent_angle_at_s(linestring, s)
       
-      velocity = self.sample_velocity_uniform(self._other_velocity_range)
+      velocity = self.sample_velocity_uniform(self._velocity_range)
       agent_state = np.array([0, xy_point.x(), xy_point.y(), angle, velocity ])
 
       agent_params = self._agent_params.copy()
